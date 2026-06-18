@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "ContextZilla • Text Oracle by Nic + Grok",
+  "version": "1.0",
+  "description": "Context-first guardian for spelling, domains, acronyms, grammar, code. Side panel mini-doc applet.",
+  "permissions": ["sidePanel", "activeTab"],
+  "background": {"service_worker": "background.js"},
+  "action": {"default_title": "🦖 Open ContextZilla"},
+  "side_panel": {"default_path": "sidepanel.html"}
+}
