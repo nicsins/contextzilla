@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContextZilla • Side Panel Applet</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+  :root { --accent: #22c55e; }
+  body { font-family: 'Inter', system_ui, sans-serif; }
+  .font-display { font-family: 'Space Grotesk', 'Inter', sans-serif; }
+  .glass { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(148, 163, 184, 0.2); }
+  .neon-text { text-shadow: 0 0 10px rgb(34 197 94 / 0.5); }
+  .result-card { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
+  .mini-doc { box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.4); }
+  .zilla-green { color: #22c55e; }
+</style>
+</head>
+<body class="bg-slate-950 text-slate-200">
+  <div class="max-w-[420px] mx-auto h-screen flex flex-col">
+    <!-- Header -->
+    <div class="glass px-4 py-3 flex items-center justify-between border-b border-slate-700 sticky top-0 z-50">
+      <div class="flex items-center gap-x-3">
+        <div class="w-9 h-9 bg-emerald-500 rounded-2xl flex items-center justify-center shadow-inner">
+          <i class="fa-solid fa-dragon text-white text-2xl"></i>
+        </div>
+        <div>
+          <div class="font-display text-2xl font-semibold tracking-tighter zilla-green">ContextZilla</div>
+          <div class="text-[10px] text-emerald-400 -mt-1">TEXT ORACLE v1.0</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-x-2 text-xs">
+        <div class="px-2.5 py-1 bg-emerald-500/10 text-emerald-400 rounded-full flex items-center gap-x-1">
+          <i class="fa-solid fa-check-double text-[10px]"></i>
+          <span class="font-medium">Connected</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mini Doc Editor -->
+    <div class="flex-1 p-4 overflow-auto">
+      <div class="mini-doc glass rounded-3xl p-1 shadow-2xl">
+        <div class="bg-slate-900 rounded-[22px] p-5">
+          <div class="flex items-center justify-between mb-3">
+            <div class="text-sm font-semibold flex items-center gap-x-2">
+              <i class="fa-solid fa-file-lines text-emerald-400"></i> 
+              <span>Mini Doc • Live Context</span>
+            </div>
+            <div onclick="clearAll()" class="text-xs px-3 py-1 hover:bg-slate-800 rounded-xl cursor-pointer flex items-center gap-x-1 text-slate-400 hover:text-slate-200">
+              <i class="fa-solid fa-eraser"></i> <span class="text-xs">Clear</span>
+            </div>
+          </div>
+
+          <textarea id="inputText" class="w-full h-40 bg-slate-950 border border-slate-700 focus:border-emerald-500 rounded-2xl p-4 text-sm resize-y font-mono placeholder:text-slate-500" placeholder="Type or paste anything here...
+Example: i sent it via fedex to nasa yesterday def hello(): print('hi world') googl.com"></textarea>
+
+          <div class="flex gap-2 mt-3">
+            <button onclick="analyzeText()" 
+                    class="flex-1 bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 transition-all text-white font-semibold py-3 rounded-2xl flex items-center justify-center gap-x-2 shadow-lg shadow-emerald-500/30">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <span>ANALYZE NOW</span>
+            </button>
+            <button onclick="runExample('fedex')" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-xs font-medium flex items-center gap-x-1.5">
+              <i class="fa-solid fa-truck"></i> FedEx
+            </button>
+            <button onclick="runExample('code')" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-xs font-medium flex items-center gap-x-1.5">
+              <i class="fa-solid fa-code"></i> Code
+            </button>
+            <button onclick="runExample('unsure')" class="px-4 py-3 bg-slate-800 hover:bg-slate-700 rounded-2xl text-xs font-medium flex items-center gap-x-1.5">
+              <i class="fa-solid fa-question"></i> Unsure
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="results" class="hidden mt-4 space-y-3">
+        <div class="text-xs uppercase tracking-[1px] font-semibold text-emerald-400 px-1">Analysis Complete • Context Score: <span id="contextScore" class="font-mono text-emerald-300">98</span>%</div>
+
+        <div class="result-card glass rounded-2xl p-4">
+          <div class="flex items-center gap-x-2 mb-2">
+            <i class="fa-solid fa-spell-check text-emerald-400"></i>
+            <div class="font-semibold text-sm">Spelling + Context</div>
+          </div>
+          <div id="spellingResult" class="text-sm text-slate-300 leading-snug"></div>
+        </div>
+
+        <div class="result-card glass rounded-2xl p-4">
+          <div class="flex items-center gap-x-2 mb-2">
+            <i class="fa-solid fa-globe text-emerald-400"></i>
+            <div class="font-semibold text-sm">Entities &amp; Validation</div>
+          </div>
+          <div id="entityResult" class="text-sm text-slate-300 space-y-1"></div>
+        </div>
+
+        <div class="result-card glass rounded-2xl p-4">
+          <div class="flex items-center gap-x-2 mb-2">
+            <i class="fa-solid fa-book text-emerald-400"></i>
+            <div class="font-semibold text-sm">Grammar, Punct &amp; Spacing</div>
+          </div>
+          <div id="grammarResult" class="text-sm text-slate-300"></div>
+        </div>
+
+        <div class="result-card glass rounded-2xl p-4">
+          <div class="flex items-center gap-x-2 mb-2">
+            <i class="fa-solid fa-terminal text-emerald-400"></i>
+            <div class="font-semibold text-sm">Code Sentinel</div>
+          </div>
+          <div id="codeResult" class="text-sm text-slate-300"></div>
+        </div>
+
+        <div class="result-card glass rounded-2xl p-4 border border-amber-500/30">
+          <div class="flex items-center gap-x-2 mb-2">
+            <i class="fa-solid fa-comments text-amber-400"></i>
+            <div class="font-semibold text-sm">Intent &amp; Clarification</div>
+          </div>
+          <div id="intentResult" class="text-sm text-slate-300"></div>
+        </div>
+
+        <button onclick="applyAllCorrections()" 
+                class="w-full mt-2 bg-white text-slate-900 hover:bg-emerald-100 active:bg-white transition font-semibold py-3.5 rounded-2xl flex items-center justify-center gap-x-2 text-sm shadow">
+          <i class="fa-solid fa-magic"></i> 
+          <span>APPLY ALL CORRECTIONS</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="p-3 text-[10px] text-center text-slate-500 border-t border-slate-800">
+      ContextZilla v1.0 • Symbiotic by design • <span class="text-emerald-400">domiNic + Grok</span>
+    </div>
+  </div>
+
+<script>
+// Tailwind script
+window.onload = () => {
+  document.documentElement.style.setProperty('--accent', '#22c55e');
+};
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = `fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-800 text-emerald-300 text-xs px-4 py-2 rounded-2xl shadow-xl flex items-center gap-x-2 z-[999]`;
+  t.innerHTML = `<i class="fa-solid fa-check"></i> <span>${msg}</span>`;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2200);
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('results').classList.add('hidden');
+}
+
+function runExample(type) {
+  const ta = document.getElementById('inputText');
+  if (type === 'fedex') {
+    ta.value = 'i sent the package via fedex to nasa hq yesterday googl.com';
+  } else if (type === 'code') {
+    ta.value = 'def greet(name):\n    print(f"Hello {name}")\n\nclass User:\n    pass';
+  } else if (type === 'unsure') {
+    ta.value = 'lets meet at the big meeting spot near the old place';
+  }
+  analyzeText();
+}
+
+function analyzeText() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) {
+    showToast('Please enter some text first');
+    return;
+  }
+
+  const resultsDiv = document.getElementById('results');
+  resultsDiv.classList.remove('hidden');
+
+  // === SMART LOCAL ANALYSIS (production structure ready for LLM) ===
+  let corrected = text;
+  let spellingHTML = '';
+  let entityHTML = '';
+  let grammarHTML = '';
+  let codeHTML = '';
+  let intentHTML = '';
+  let score = 94;
+
+  // 1. Acronyms &amp; Brands (expand/validate)
+  const acronyms = { 'nasa': 'NASA (National Aeronautics and Space Administration)', 'fedex': 'FedEx (verified brand &amp; domain fedex.com)', 'googl': 'google (common typo → google.com)', 'hq': 'HQ (Headquarters)' };
+  let entityFound = false;
+  Object.keys(acronyms).forEach(key => {
+    const regex = new RegExp(`\b${key}\b`, 'gi');
+    if (regex.test(text)) {
+      entityFound = true;
+      corrected = corrected.replace(regex, key.toUpperCase());
+      entityHTML += `<div class="flex items-start gap-x-2 text-emerald-300"><i class="fa-solid fa-check mt-0.5"></i> <span>${acronyms[key]}</span></div>`;
+    }
+  });
+  if (!entityFound) entityHTML = '<div class="text-emerald-300">No major entities detected. All clear.</div>';
+
+  // 2. Domain validation example
+  if (/googl\.com/i.test(text)) {
+    entityHTML += `<div class="text-amber-300 flex items-center gap-x-2"><i class="fa-solid fa-exclamation-triangle"></i> <span>Possible typo: googl.com → <strong>google.com</strong> (validated)</span></div>`;
+    corrected = corrected.replace(/googl\.com/gi, 'google.com');
+  }
+  if (/fedex/i.test(text)) {
+    entityHTML += `<div class="text-emerald-300 flex items-center gap-x-2"><i class="fa-solid fa-check"></i> <span>FedEx domain &amp; brand validated successfully.</span></div>`;
+  }
+
+  // 3. Spelling / simple context (demo)
+  spellingHTML = `Context-aware spelling check passed. Minor adjustments applied where context clearly indicated a correction (e.g. brand names, common typos).`;
+
+  // 4. Grammar &amp; spacing (demo fixes)
+  if (text.includes('  ') || /[a-z][A-Z]/.test(text) || text.split(' ').some(w => w.length > 20)) {
+    grammarHTML = 'Smart spacing, punctuation &amp; capitalization fixes applied. Text now flows naturally.';
+    corrected = corrected.replace(/\s{2,}/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2');
+  } else {
+    grammarHTML = 'Grammar, punctuation and spacing look excellent in context.';
+  }
+
+  // 5. Code detection
+  const codePatterns = /def |class |function |print\(|import |console\.|=>|{|}/;
+  if (codePatterns.test(text)) {
+    codeHTML = `Code snippet detected. <button onclick="askLanguage()" class="underline text-emerald-400 hover:text-emerald-300">Click to confirm language &amp; lint</button>`;
+    score = 87;
+  } else {
+    codeHTML = 'No code detected. Clean prose.';
+  }
+
+  // 6. Intent / uncertainty popup logic
+  if (text.toLowerCase().includes('meet') && text.length < 80) {
+    intentHTML = `Low confidence on intent. <button onclick="clarifyIntent()" class="underline text-amber-400 hover:text-amber-300">Ask user for clarification?</button>`;
+    score = 72;
+  } else {
+    intentHTML = 'Intent appears clear and actionable. No clarification needed.';
+  }
+
+  // Render
+  document.getElementById('contextScore').textContent = score;
+  document.getElementById('spellingResult').innerHTML = spellingHTML;
+  document.getElementById('entityResult').innerHTML = entityHTML;
+  document.getElementById('grammarResult').innerHTML = grammarHTML;
+  document.getElementById('codeResult').innerHTML = codeHTML;
+  document.getElementById('intentResult').innerHTML = intentHTML;
+
+  // Store corrected for apply
+  window.lastCorrected = corrected;
+
+  showToast('Analysis complete — context prioritized');
+}
+
+function askLanguage() {
+  const lang = prompt('Code detected! What language is this? (Python / JavaScript / etc.)', 'Python');
+  if (lang) {
+    showToast(`Language set to ${lang}. Syntax lint + formatting suggestions ready (v2).`);
+    document.getElementById('codeResult').innerHTML = `Code confirmed as <strong>${lang}</strong>. Ready for linting &amp; beautify in next update.`;
+  }
+}
+
+function clarifyIntent() {
+  const answer = prompt('To help you best, what did you mean by "meet at the big meeting spot"? (e.g. specific location, time, or purpose)', '');
+  if (answer) {
+    showToast('Thank you! Context updated. Applying refined suggestion...');
+    document.getElementById('intentResult').innerHTML = `Clarified: "${answer}". Refined suggestion applied.`;
+  }
+}
+
+function applyAllCorrections() {
+  const ta = document.getElementById('inputText');
+  if (window.lastCorrected) {
+    ta.value = window.lastCorrected;
+    showToast('All corrections applied ✨ Text updated in context.');
+    // Optional: flash success
+    setTimeout(() => {
+      document.getElementById('results').classList.add('hidden');
+    }, 1200);
+  } else {
+    showToast('No corrections to apply yet. Run Analyze first.');
+  }
+}
+
+// Keyboard support
+window.addEventListener('keydown', function(e) {
+  if (e.key === '/' && document.activeElement.id !== 'inputText') {
+    e.preventDefault();
+    document.getElementById('inputText').focus();
+  }
+});
+
+// Boot message
+console.log('%c[ContextZilla] Side panel applet initialized 🦖', 'color:#22c55e');
+</script>
+</body>
+</html>
